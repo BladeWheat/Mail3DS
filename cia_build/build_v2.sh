@@ -13,6 +13,6 @@ rm -f cia_build/Mail3DS.cia
   -icon cia_build/mail3ds.smdh \
   -banner cia_build/banner.bnr \
   -DAPP_ROMFS="$ROMFS_WIN" \
-  -major 1 -minor 0 -micro 0 2>&1
+  -major 1 -minor 1 -micro 0 2>&1
 echo "exit=$?"
 ls -la cia_build/Mail3DS.cia

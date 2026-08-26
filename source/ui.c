@@ -713,7 +713,12 @@ void UI_DrawTextTruncated(float x, float y, float depth, float scale, u32 color,
 
             while (len > 0)
             {
-                buf[--len] = 0;
+                // 回退一个完整UTF-8字符：先退1字节，再跳过该字符剩余的续字节，
+                // 绝不能把一个多字节汉字切成半截（否则末尾会显示成问号）
+                len--;
+                while (len > 0 && ((unsigned char)buf[len] & 0xC0) == 0x80)
+                    len--;
+                buf[len] = 0;
                 char withEll[260];
                 snprintf(withEll, sizeof(withEll), "%s…", buf);
                 tw = measure_text_fallback(scale, withEll);

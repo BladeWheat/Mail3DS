@@ -495,41 +495,13 @@ parse_date_compute:
     int tzOffsetSec = tzSign * (tzHours * 3600 + tzMins * 60);
     long long utcTimestamp = timestamp - tzOffsetSec;
 
-    // 获取设备本地时区偏移（秒）
-    // 用当前时间的localtime/gmtime差值计算，只算一次
-    long long localOffset = 0;
-    {
-        time_t now = time(NULL);
-        struct tm ltBuf, gtBuf;
-        struct tm* ltTmp = localtime(&now);
-        if (ltTmp) { ltBuf = *ltTmp; } else { memset(&ltBuf, 0, sizeof(ltBuf)); }
-        struct tm* gtTmp = gmtime(&now);
-        if (gtTmp) { gtBuf = *gtTmp; } else { memset(&gtBuf, 0, sizeof(gtBuf)); }
-        if (ltTmp && gtTmp)
-        {
-            localOffset = (long long)(ltBuf.tm_hour - gtBuf.tm_hour) * 3600
-                        + (long long)(ltBuf.tm_min - gtBuf.tm_min) * 60;
-            // 处理日期跨越
-            int ydayDiff = ltBuf.tm_yday - gtBuf.tm_yday;
-            int yearDiff = ltBuf.tm_year - gtBuf.tm_year;
-            if (yearDiff != 0)
-                ydayDiff += yearDiff * 365;
-            if (ydayDiff > 1 || ydayDiff < -1)
-                localOffset += (ydayDiff > 0 ? 1 : -1) * 86400;
-            else if (ydayDiff != 0)
-                localOffset += ydayDiff * 86400;
-        }
-        else
-        {
-            localOffset = 8 * 3600; // 默认UTC+8（中国标准时间）
-        }
-    }
-
-    long long localTimestamp = utcTimestamp + localOffset;
+    // 年/月/日/时/分 固定按北京时间（UTC+8）存储，与设备所在时区无关
+    // timestamp 仍存标准 UTC 秒（绝对时间，用于排序）
+    long long beijingTimestamp = utcTimestamp + 8LL * 3600;
 
     // 手动从时间戳计算年月日时分，不依赖localtime（避免3DS newlib兼容问题）
     {
-        long long ts = localTimestamp;
+        long long ts = beijingTimestamp;
         long long days = ts / 86400;
         long long rem = ts % 86400;
         if (rem < 0) { rem += 86400; days--; }
@@ -560,7 +532,7 @@ parse_date_compute:
         *outDay = (int)days + 1;
         *outHour = hour;
         *outMin = minute;
-        *outTimestamp = localTimestamp;
+        *outTimestamp = utcTimestamp;
         return 0;
     }
 }

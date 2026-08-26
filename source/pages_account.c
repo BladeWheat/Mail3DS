@@ -1699,7 +1699,7 @@ void Page_AboutDraw(void)
     C2D_DrawRectSolid(0, 0, 0, SCREEN_BOT_W, SCREEN_BOT_H, COLOR_PAGE_BG);
 
     UI_DrawTextCenter(SCREEN_BOT_W / 2, 30, 0.7f, COLOR_BLUE, "3DS 电子邮箱");
-    UI_DrawTextCenter(SCREEN_BOT_W / 2, 60, 0.45f, COLOR_TEXT_SECONDARY, "版本 1.0.0");
+    UI_DrawTextCenter(SCREEN_BOT_W / 2, 60, 0.45f, COLOR_TEXT_SECONDARY, "版本 v1.1.0");
 
     C2D_DrawRectSolid(40, 85, 0, 240, 1, C2D_Color32(0xD0,0xCC,0xB8,0xFF));
 

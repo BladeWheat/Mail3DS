@@ -14,9 +14,15 @@ rm -f cia_build/Mail3DS.cia
   -rsf cia_build/mail3ds_v2.rsf \
   -icon cia_build/mail3ds.smdh \
   -banner cia_build/banner.bnr \
+<<<<<<< HEAD
   -DAPP_ROMFS="$ROMFS_WIN" 2>&1
 
 # 补丁 TMD Title Version：1024(1.0.0, 0x0400) -> 1088(1.1.0, 0x0440)
 powershell -ExecutionPolicy Bypass -File cia_build/patch_version.ps1
 
+=======
+  -DAPP_ROMFS="$ROMFS_WIN" \
+  -major 1 -minor 1 -micro 0 2>&1
+echo "exit=$?"
+>>>>>>> e6e126917f750c2e0f6d4511b56a950a3c33e637
 ls -la cia_build/Mail3DS.cia

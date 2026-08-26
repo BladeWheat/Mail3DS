@@ -192,7 +192,7 @@ static int s_fullBodyLen = 0;
 static int s_pressedBottomBtn = -1;  // 触摸按下的底部按钮（-1=无）
 
 // 纯文本预换行（避免每帧重新排版导致卡顿）
-#define MAX_WRAPPED_LINES 512
+#define MAX_WRAPPED_LINES 1500
 static char s_wrappedLines[MAX_WRAPPED_LINES][384];
 static int s_wrappedLineCount = 0;
 static u8 s_wrapQuote[MAX_WRAPPED_LINES];  // 每行是否引用行
@@ -286,7 +286,43 @@ static int s_dropAction = 0;              // 按下时记录的操作：0=无，
 static int s_dropMenuItem = -1;           // 按下时记录的菜单项索引
 #define DROP_ANIM_FRAMES 12               // 0.2秒 @60fps
 
+// 返回一个UTF-8字符占用的字节数（非法/残缺字节按1处理，保证逐字节推进不死循环）
+static int utf8_char_bytes(const char* s)
+{
+    unsigned char c = (unsigned char)s[0];
+    if (c < 0x80) return 1;
+    if ((c & 0xE0) == 0xC0) return 2;
+    if ((c & 0xF0) == 0xE0) return 3;
+    if ((c & 0xF8) == 0xF0) return 4;
+    return 1;
+}
+
+// 判断一个UTF-8字符是否为CJK汉字/全角标点（这类字符允许在字与字之间断行）
+static bool utf8_is_cjk(const char* s, int n)
+{
+    unsigned char c = (unsigned char)s[0];
+    if (c < 0x80) return false; // ASCII（英文/数字/半角空格）不在字间断行
+    unsigned int cp = 0;
+    if (n == 2)
+        cp = ((c & 0x1F) << 6) | ((unsigned char)s[1] & 0x3F);
+    else if (n == 3)
+        cp = ((c & 0x0F) << 12) | (((unsigned char)s[1] & 0x3F) << 6) |
+             ((unsigned char)s[2] & 0x3F);
+    else if (n == 4)
+        cp = ((c & 0x07) << 18) | (((unsigned char)s[1] & 0x3F) << 12) |
+             (((unsigned char)s[2] & 0x3F) << 6) | ((unsigned char)s[3] & 0x3F);
+    else
+        cp = c;
+    // CJK统一表意文字、扩展A、兼容表意文字、CJK标点、全角ASCII/标点
+    if (cp >= 0x2E80 && cp <= 0x9FFF) return true;
+    if (cp >= 0x3000 && cp <= 0x303F) return true;
+    if (cp >= 0xFF00 && cp <= 0xFFEF) return true;
+    return false;
+}
+
 // 纯文本预换行：只在正文变化时执行一次，避免每帧全文排版卡顿
+// 关键：按完整UTF-8字符遍历（不拆汉字），任何字符都不丢弃，
+// CJK逐字断行、英文按空格断行，溢出的内容移到下一行行首。
 static void wrap_plain_text(const char* text, float bodyScale, int maxWidth)
 {
     s_wrappedLineCount = 0;
@@ -294,10 +330,10 @@ static void wrap_plain_text(const char* text, float bodyScale, int maxWidth)
 
     char line[384];
     int lineLen = 0;
-    int lastSpace = -1;
     bool isQuote = false;
     int indent = 0;
     bool lastLineEmpty = false;  // 上一行是否为空行（用于合并连续空行）
+    int lastSpaceByte = -1;      // 当前行最后一个ASCII空格的字节偏移（英文断行点）
 
     #define ADD_WRAPPED_LINE() do { \
         if (s_wrappedLineCount < MAX_WRAPPED_LINES) { \
@@ -309,7 +345,7 @@ static void wrap_plain_text(const char* text, float bodyScale, int maxWidth)
         } \
         lastLineEmpty = (lineLen == 0); \
         lineLen = 0; \
-        lastSpace = -1; \
+        lastSpaceByte = -1; \
     } while(0)
 
     while (*text)
@@ -347,36 +383,76 @@ static void wrap_plain_text(const char* text, float bodyScale, int maxWidth)
             continue;
         }
 
-        line[lineLen++] = *text;
-        line[lineLen] = 0;
+        // 取一个完整UTF-8字符
+        int clen = utf8_char_bytes(text);
 
-        if (*text == ' ')
-            lastSpace = lineLen - 1;
+        // 行缓冲区装不下：先输出当前行，下一轮再把该字符放到新行（不推进text，不丢字）
+        if (lineLen + clen >= (int)sizeof(line))
+        {
+            ADD_WRAPPED_LINE();
+            if (isQuote) indent = 12;
+            continue;
+        }
+
+        // 试加入该字符，再测量整行宽度
+        memcpy(line + lineLen, text, clen);
+        int newLen = lineLen + clen;
+        line[newLen] = 0;
 
         float w = UI_MeasureText(bodyScale, line);
-        if (w > maxWidth - indent && lineLen > 1)
+        if (w > maxWidth - indent && lineLen > 0)
         {
-            if (lastSpace > 0)
+            bool cjk = utf8_is_cjk(text, clen);
+            if (!cjk && lastSpaceByte > 0)
             {
-                lineLen = lastSpace;
+                // 英文：在最后一个空格处断行。断点之后的内容（含当前单词）整体移到下一行
+                int tailLen = newLen - lastSpaceByte;
+                char tail[384];
+                memcpy(tail, line + lastSpaceByte, tailLen);
+                tail[tailLen] = 0;
+                int skip = 0;
+                while (skip < tailLen && tail[skip] == ' ') skip++; // 去掉新行行首空格
+
+                lineLen = lastSpaceByte;
                 line[lineLen] = 0;
                 ADD_WRAPPED_LINE();
-                text++;
-                while (*text == ' ') text++;
+
+                int rest = tailLen - skip;
+                memmove(tail, tail + skip, rest);
+                memcpy(line, tail, rest);
+                lineLen = rest;
+                line[lineLen] = 0;
             }
             else
             {
-                lineLen--;
+                // CJK（或整行无空格）：把刚加入的这个字符移到下一行行首
+                lineLen = newLen - clen;
                 line[lineLen] = 0;
                 ADD_WRAPPED_LINE();
-                text++;
+                memcpy(line, text, clen);
+                lineLen = clen;
+                line[lineLen] = 0;
             }
             if (isQuote) indent = 12;
+
+            // 重新计算新行里的空格断点
+            lastSpaceByte = -1;
+            for (int k = 0; k + 1 < lineLen; )
+            {
+                int cl = utf8_char_bytes(line + k);
+                if (cl == 1 && line[k] == ' ') lastSpaceByte = k;
+                k += cl;
+            }
         }
         else
         {
-            text++;
+            // 接受该字符
+            lineLen = newLen;
+            if (clen == 1 && *text == ' ')
+                lastSpaceByte = lineLen - 1;
         }
+
+        text += clen;
     }
 
     if (lineLen > 0)
@@ -1392,16 +1468,12 @@ void Page_MainUpdate(touchPosition* touch, u32 kDown)
             if (s_fullBody) { free(s_fullBody); s_fullBody = NULL; s_fullBodyLen = 0; }
             s_bodyScroll = 0;
         }
-        // 十字键上下滚动（每次3行）
+        // 十字键 / 左摇杆上下滚动正文。
+        // 摇杆方向已在 main.c 统一映射为 KEY_D*，因此两者逻辑完全一致：按一下滚3行。
         if (kDown & KEY_DUP)
             s_bodyScroll -= 3;
         if (kDown & KEY_DDOWN)
             s_bodyScroll += 3;
-        // 摇杆上下滚动
-        circlePosition cpos;
-        hidCircleRead(&cpos);
-        if (cpos.dy > 30) s_bodyScroll += 1;
-        if (cpos.dy < -30) s_bodyScroll -= 1;
         if (s_bodyScroll < 0) s_bodyScroll = 0;
         return; // 阅读模式下不处理其他按键
     }

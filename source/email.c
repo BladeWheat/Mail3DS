@@ -16,8 +16,9 @@ void Email_FormatDate(int year, int month, int day, int hour, int minute,
         return;
     }
 
-    time_t now = time(NULL);
-    struct tm* lt = localtime(&now);
+    // “今天”按北京时间（UTC+8）判断，与 hdr 中存储的年月日保持一致
+    time_t now = time(NULL) + 8 * 3600;
+    struct tm* lt = gmtime(&now);
     int curYear = lt ? lt->tm_year + 1900 : 0;
     int curMonth = lt ? lt->tm_mon + 1 : 0;
     int curDay = lt ? lt->tm_mday : 0;

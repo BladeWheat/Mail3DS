@@ -336,16 +336,24 @@ static void add_span(const char* text, const char* textEnd, u32 color,
     // 如果单个span还是超宽，在span内部断行
     spanW = UI_MeasureText(scale, spanBuf);
     if (spanW > availW) {
-        // 逐字符断行
+        // 逐字符断行（按完整UTF-8字符推进，绝不拆分多字节汉字）
         char chunk[SPAN_TEXT_LEN];
         int ci = 0;
         int lastSpace = -1;
-        for (int i = 0; i < len; i++) {
-            chunk[ci++] = spanBuf[i];
+        for (int i = 0; i < len; ) {
+            // 计算当前UTF-8字符占用的字节数
+            int cb = 1;
+            unsigned char c0 = (unsigned char)spanBuf[i];
+            if      ((c0 & 0xE0) == 0xC0) cb = 2;
+            else if ((c0 & 0xF0) == 0xE0) cb = 3;
+            else if ((c0 & 0xF8) == 0xF0) cb = 4;
+            if (i + cb > len) cb = len - i;
+
+            for (int b = 0; b < cb; b++) chunk[ci++] = spanBuf[i + b];
             chunk[ci] = 0;
-            if (spanBuf[i] == ' ') lastSpace = ci;
+            if (cb == 1 && spanBuf[i] == ' ') lastSpace = ci;
             float cw = UI_MeasureText(scale, chunk);
-            if (cw > availW && ci > 1) {
+            if (cw > availW && ci > cb) {
                 if (lastSpace > 0) {
                     // 按空格断
                     chunk[lastSpace - 1] = 0;
@@ -355,26 +363,30 @@ static void add_span(const char* text, const char* textEnd, u32 color,
                         sp->color = color; sp->scale = scale;
                         sp->underline = underline; sp->bold = bold;
                     }
-                    // 剩余部分
+                    // 剩余部分（含当前字符）移到下一行
                     int rem = ci - lastSpace;
                     memmove(chunk, chunk + lastSpace, rem);
                     ci = rem;
                     chunk[ci] = 0;
                     lastSpace = -1;
                 } else {
-                    chunk[--ci] = 0;
+                    // 把整个当前字符移到下一行行首，避免把多字节汉字拆坏
+                    ci -= cb;
+                    chunk[ci] = 0;
                     if (line->spanCount < MAX_SPANS) {
                         Span* sp = &line->spans[line->spanCount++];
                         strncpy(sp->text, chunk, SPAN_TEXT_LEN - 1);
                         sp->color = color; sp->scale = scale;
                         sp->underline = underline; sp->bold = bold;
                     }
-                    chunk[0] = spanBuf[i];
-                    ci = 1;
+                    memcpy(chunk, spanBuf + i, cb);
+                    ci = cb;
+                    chunk[ci] = 0;
                 }
                 new_line();
                 line = &g_lines[g_curLine];
             }
+            i += cb;
         }
         if (ci > 0 && line->spanCount < MAX_SPANS) {
             chunk[ci] = 0;

@@ -1,0 +1,43 @@
+# ===== 编译产物（make 生成，不上传）=====
+/build/
+*.o
+*.d
+*.map
+*.elf
+*.3dsx
+*.smdh
+
+# ===== 打包产物（体积大，用源码可重新生成）=====
+*.cia
+*.cxi
+*.bnr
+*.3ds
+*.cci
+
+# cia_build 里只保留配置/脚本/素材，忽略生成的大文件
+cia_build/Mail3DS.cia
+cia_build/*.cxi
+cia_build/*.bnr
+cia_build/Mail3DS.3dsx
+
+# ===== 可能含隐私 / 日志（绝不上传）=====
+accounts.dat
+settings.ini
+account_map.ini
+*.log
+boot_trace.txt
+cache_log.txt
+imap_debug.txt
+header_debug.txt
+mime_debug.txt
+fetch_trace.txt
+state_trace.txt
+
+# ===== 系统 / 编辑器杂项 =====
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*~

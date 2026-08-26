@@ -15,7 +15,7 @@ include $(DEVKITARM)/3ds_rules
 # DATA is a list of directories containing data files
 # INCLUDES is a list of directories containing header files
 #---------------------------------------------------------------------------------
-TARGET		:=	3ds_email
+TARGET		:=	Mail3DS
 BUILD		:=	build
 SOURCES		:=	source
 DATA		:=	data
@@ -33,7 +33,7 @@ APP_AUTHOR		:= Wheat
 CIA_TITLE_ID	:= 0004000003A17000
 CIA_PROC_NAME	:= MAIL3DS
 CIA_PROD_CODE	:= CTR-P-MAIL
-CIA_VERSION		:= 1024				# 1.0.0
+CIA_VERSION		:= 1040				# 1.1.0 (主*1024 + 次*16 + 修订)
 CIA_SHORT		:= Mail3DS
 CIA_LONG		:= 3DS 电子邮件客户端
 CIA_AUTHOR		:= Wheat

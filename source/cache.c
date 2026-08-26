@@ -230,7 +230,6 @@ int Cache_SaveHeader(const char* email, const CacheEntry* entry)
     cJSON_AddStringToObject(root, "subject", entry->subject);
     cJSON_AddStringToObject(root, "contentType", entry->contentType);
     cJSON_AddStringToObject(root, "preview", entry->preview);
-    cJSON_AddStringToObject(root, "date", "");
     cJSON_AddNumberToObject(root, "year", entry->year);
     cJSON_AddNumberToObject(root, "month", entry->month);
     cJSON_AddNumberToObject(root, "day", entry->day);

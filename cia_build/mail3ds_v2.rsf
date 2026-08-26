@@ -6,7 +6,7 @@ RomFs:
   RootPath: $(APP_ROMFS)
 TitleInfo:
   Category: Application
-  UniqueId: 0x17D50
+  UniqueId: 0x3A170
 Option:
   UseOnSD: true
   FreeProductCode: false

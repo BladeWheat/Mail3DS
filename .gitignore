@@ -1,4 +1,12 @@
-# ===== 编译产物（make 生成，不上传）=====
+# ============================================================
+# Mail3DS .gitignore
+# 原则：只上传“源码 + 必需素材 + 打包脚本/配置”，
+#       编译/打包产物、运行时缓存、隐私文件一律不上传。
+# 注意：romfs/ 下的 *.t3x 字库/贴图与 pinyin_dict.bin 是
+#       构建必需素材，已主动跟踪，不要忽略。
+# ============================================================
+
+# ===== 编译产物（make 生成，可用源码重新构建）=====
 /build/
 *.o
 *.d
@@ -6,25 +14,37 @@
 *.elf
 *.3dsx
 *.smdh
-
-# ===== 打包产物（体积大，用源码可重新生成）=====
-*.cia
-*.cxi
-*.bnr
+*.app
 *.3ds
 *.cci
 
-# cia_build 里只保留配置/脚本/素材，忽略生成的大文件
-cia_build/Mail3DS.cia
-cia_build/*.cxi
-cia_build/*.bnr
-cia_build/Mail3DS.3dsx
+# ===== CIA 打包产物 / 中间文件（体积大，可重新生成）=====
+*.cia
+*.cxi
+*.bnr
+/cia_build/Mail3DS.cia
+/cia_build/Mail3DS.elf
+/cia_build/Mail3DS.3dsx
+/cia_build/Mail3DS.cxi
+/cia_build/mail3ds.smdh
+/cia_build/*.tmp
+# cia_build 内以下文件需要保留上传：
+#   build_v2.sh、patch_version.ps1、patch_smdh_title.ps1、
+#   mail3ds_v2.rsf、banner_256x128.png、silent.wav
 
-# ===== 可能含隐私 / 日志（绝不上传）=====
+# ===== 旧命名残留（TARGET 已改为 Mail3DS）=====
+/3ds_email.3dsx
+/3ds_email.elf
+/3ds_email.smdh
+
+# ===== 运行时数据 / 隐私（SD 卡缓存，绝不上传）=====
 accounts.dat
 settings.ini
 account_map.ini
+*.hdr
 *.log
+*_debug.txt
+*_trace.txt
 boot_trace.txt
 cache_log.txt
 imap_debug.txt
@@ -32,12 +52,27 @@ header_debug.txt
 mime_debug.txt
 fetch_trace.txt
 state_trace.txt
+/Mail3DS/
+/account_0/
+/account_1/
+/account_2/
+/account_3/
+body_cache/
+header_cache/
 
-# ===== 系统 / 编辑器杂项 =====
+# ===== 本地压缩包 / 备份 =====
+*.zip
+*.7z
+*.rar
+*.bak
+*.orig
+
+# ===== 操作系统 / 编辑器杂项 =====
 .DS_Store
 Thumbs.db
 desktop.ini
 .vscode/
 .idea/
 *.swp
+*.swo
 *~

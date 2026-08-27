@@ -274,7 +274,6 @@ static void add_span(const char* text, const char* textEnd, u32 color,
     {
         ensure_line();
         RenderLine* line = &g_lines[g_curLine];
-<<<<<<< HEAD
 
         // 当前行为空时，跳过纯空白块（块级标签间的换行/缩进），避免多余空行
         if (line->spanCount == 0 && !line->isHR && !line->isImage)
@@ -288,38 +287,6 @@ static void add_span(const char* text, const char* textEnd, u32 color,
             if (allSpace) return;
         }
 
-=======
-<<<<<<< HEAD
-
-        // 当前行为空时，跳过纯空白块（块级标签间的换行/缩进），避免多余空行
-        if (line->spanCount == 0 && !line->isHR && !line->isImage)
-        {
-            bool allSpace = true;
-            for (const char* q = p; q < textEnd; q++)
-            {
-                if (*q != ' ' && *q != '\t' && *q != '\n' && *q != '\r')
-                { allSpace = false; break; }
-            }
-            if (allSpace) return;
-        }
-
-=======
-
-        // 当前行为空时，跳过纯空白块（块级标签间的换行/缩进），避免多余空行
-        if (line->spanCount == 0 && !line->isHR && !line->isImage)
-        {
-            bool allSpace = true;
-            for (const char* q = p; q < textEnd; q++)
-            {
-                if (*q != ' ' && *q != '\t' && *q != '\n' && *q != '\r')
-                { allSpace = false; break; }
-            }
-            if (allSpace) return;
-        }
-
-<<<<<<< HEAD
->>>>>>> 83d91e5ea2997eb8a09b02ef775c4d1aa70edec9
->>>>>>> 02f2e74d037b2a03dd99babd9ea59e05a5bbc2f2
         // 构建一个分块 spanBuf（UTF-8 边界安全，实体整体解码）
         char spanBuf[SPAN_TEXT_LEN];
         int len = 0;
@@ -340,92 +307,11 @@ static void add_span(const char* text, const char* textEnd, u32 color,
                     spanBuf[len++] = (char)(0xE0 | (ch >> 12));
                     spanBuf[len++] = (char)(0x80 | ((ch >> 6) & 0x3F));
                     spanBuf[len++] = (char)(0x80 | (ch & 0x3F));
-<<<<<<< HEAD
                 } else {
                     spanBuf[len++] = (char)(0xF0 | (ch >> 18));
                     spanBuf[len++] = (char)(0x80 | ((ch >> 12) & 0x3F));
                     spanBuf[len++] = (char)(0x80 | ((ch >> 6) & 0x3F));
                     spanBuf[len++] = (char)(0x80 | (ch & 0x3F));
-=======
-<<<<<<< HEAD
-                } else {
-                    spanBuf[len++] = (char)(0xF0 | (ch >> 18));
-                    spanBuf[len++] = (char)(0x80 | ((ch >> 12) & 0x3F));
-                    spanBuf[len++] = (char)(0x80 | ((ch >> 6) & 0x3F));
-                    spanBuf[len++] = (char)(0x80 | (ch & 0x3F));
-=======
-                } else {
-                    spanBuf[len++] = (char)(0xF0 | (ch >> 18));
-                    spanBuf[len++] = (char)(0x80 | ((ch >> 12) & 0x3F));
-                    spanBuf[len++] = (char)(0x80 | ((ch >> 6) & 0x3F));
-                    spanBuf[len++] = (char)(0x80 | (ch & 0x3F));
-=======
-    // 检查是否需要换行：测量当前行已有宽度+新span宽度
-    float existingW = 0;
-    for (int i = 0; i < line->spanCount; i++) {
-        existingW += UI_MeasureText(line->spans[i].scale, line->spans[i].text);
-    }
-    float spanW = UI_MeasureText(scale, spanBuf);
-    int availW = g_maxWidth - line->indent;
-
-    if (existingW + spanW > availW && existingW > 0) {
-        // 需要换行
-        new_line();
-        line = &g_lines[g_curLine];
-    }
-
-    // 如果单个span还是超宽，在span内部断行
-    spanW = UI_MeasureText(scale, spanBuf);
-    if (spanW > availW) {
-        // 逐字符断行（按完整UTF-8字符推进，绝不拆分多字节汉字）
-        char chunk[SPAN_TEXT_LEN];
-        int ci = 0;
-        int lastSpace = -1;
-        for (int i = 0; i < len; ) {
-            // 计算当前UTF-8字符占用的字节数
-            int cb = 1;
-            unsigned char c0 = (unsigned char)spanBuf[i];
-            if      ((c0 & 0xE0) == 0xC0) cb = 2;
-            else if ((c0 & 0xF0) == 0xE0) cb = 3;
-            else if ((c0 & 0xF8) == 0xF0) cb = 4;
-            if (i + cb > len) cb = len - i;
-
-            for (int b = 0; b < cb; b++) chunk[ci++] = spanBuf[i + b];
-            chunk[ci] = 0;
-            if (cb == 1 && spanBuf[i] == ' ') lastSpace = ci;
-            float cw = UI_MeasureText(scale, chunk);
-            if (cw > availW && ci > cb) {
-                if (lastSpace > 0) {
-                    // 按空格断
-                    chunk[lastSpace - 1] = 0;
-                    if (line->spanCount < MAX_SPANS) {
-                        Span* sp = &line->spans[line->spanCount++];
-                        strncpy(sp->text, chunk, SPAN_TEXT_LEN - 1);
-                        sp->color = color; sp->scale = scale;
-                        sp->underline = underline; sp->bold = bold;
-                    }
-                    // 剩余部分（含当前字符）移到下一行
-                    int rem = ci - lastSpace;
-                    memmove(chunk, chunk + lastSpace, rem);
-                    ci = rem;
-                    chunk[ci] = 0;
-                    lastSpace = -1;
-                } else {
-                    // 把整个当前字符移到下一行行首，避免把多字节汉字拆坏
-                    ci -= cb;
-                    chunk[ci] = 0;
-                    if (line->spanCount < MAX_SPANS) {
-                        Span* sp = &line->spans[line->spanCount++];
-                        strncpy(sp->text, chunk, SPAN_TEXT_LEN - 1);
-                        sp->color = color; sp->scale = scale;
-                        sp->underline = underline; sp->bold = bold;
-                    }
-                    memcpy(chunk, spanBuf + i, cb);
-                    ci = cb;
-                    chunk[ci] = 0;
->>>>>>> cb02601b9040b431421dc9202cb8064d869f1903
->>>>>>> 83d91e5ea2997eb8a09b02ef775c4d1aa70edec9
->>>>>>> 02f2e74d037b2a03dd99babd9ea59e05a5bbc2f2
                 }
             } else if (*p == '\r') {
                 p++;
@@ -444,109 +330,8 @@ static void add_span(const char* text, const char* textEnd, u32 color,
                 if (len + cb > SPAN_TEXT_LEN - 1) break;
                 for (int b = 0; b < cb; b++) spanBuf[len++] = p[b];
                 p += cb;
-<<<<<<< HEAD
             }
         }
-        spanBuf[len] = 0;
-        if (len == 0) {
-            // 理论上不会到达；强制推进防止死循环
-            if (p < textEnd) p++; else break;
-            continue;
-        }
-
-        // 逐字符把本分块填入当前行。当前行可能已留有上一分块的内容，
-        // 必须先把当前行填满再换行，否则会出现"整行/半行"交替的稀疏排版。
-        float existW = 0;
-        for (int si = 0; si < line->spanCount; si++)
-            existW += UI_MeasureText(line->spans[si].scale, line->spans[si].text);
-        int availW = g_maxWidth - line->indent;
-
-        char run[SPAN_TEXT_LEN];
-        int ri = 0;
-        int lastSpace = -1;
-        int ii = 0;
-
-        // 把 run[0..ri) 作为一个 span 追加到当前行，并累计宽度
-        #define EMIT_RUN() do { \
-            if (ri > 0 && line->spanCount < MAX_SPANS) { \
-                run[ri] = 0; \
-                Span* _sp = &line->spans[line->spanCount++]; \
-                strncpy(_sp->text, run, SPAN_TEXT_LEN - 1); \
-                _sp->text[SPAN_TEXT_LEN-1] = 0; \
-                _sp->color = color; _sp->scale = scale; \
-                _sp->underline = underline; _sp->bold = bold; \
-                existW += UI_MeasureText(scale, run); \
-            } \
-        } while(0)
-
-        while (ii < len)
-        {
-            int cb = 1;
-            unsigned char c0 = (unsigned char)spanBuf[ii];
-            if      ((c0 & 0xE0) == 0xC0) cb = 2;
-            else if ((c0 & 0xF0) == 0xE0) cb = 3;
-            else if ((c0 & 0xF8) == 0xF0) cb = 4;
-            if (ii + cb > len) cb = len - ii;
-
-            // 试把当前字符加入 run
-            for (int b = 0; b < cb; b++) run[ri + b] = spanBuf[ii + b];
-            int newRi = ri + cb;
-            run[newRi] = 0;
-            float runW = UI_MeasureText(scale, run);
-
-            if (existW + runW > availW && (ri > 0 || existW > 0))
-            {
-                // 当前行放不下：先输出能放下的部分
-                int cut = ri;
-                int carryStart = ri;
-                if (lastSpace > 0) { cut = lastSpace; carryStart = lastSpace; }
-
-                // 关键：先把放不下的尾部（含当前字符）拷出，
-                // 不能先 run[cut]=0，否则会覆盖尾部首字节，使带到新行的内容变空串丢字。
-                char tail[SPAN_TEXT_LEN];
-                int carryLen = newRi - carryStart;
-                memcpy(tail, run + carryStart, carryLen);
-
-                run[cut] = 0;
-                ri = cut;
-                EMIT_RUN();
-
-                new_line();
-                line = &g_lines[g_curLine];
-                existW = 0;
-
-                // 尾部整体带到新行行首，并去掉行首空格
-                int sk = 0;
-                while (sk < carryLen && tail[sk] == ' ') sk++;
-                carryLen -= sk;
-                memcpy(run, tail + sk, carryLen);
-                run[carryLen] = 0;
-                ri = carryLen;
-                lastSpace = -1;
-                for (int k = 0; k + 1 < ri; ) {
-                    int cl = 1;
-                    unsigned char rc = (unsigned char)run[k];
-                    if      ((rc & 0xE0) == 0xC0) cl = 2;
-                    else if ((rc & 0xF0) == 0xE0) cl = 3;
-                    else if ((rc & 0xF8) == 0xF0) cl = 4;
-                    if (cl == 1 && run[k] == ' ') lastSpace = k + 1;
-                    k += cl;
-                }
-=======
-<<<<<<< HEAD
->>>>>>> 02f2e74d037b2a03dd99babd9ea59e05a5bbc2f2
-            }
-            else
-            {
-                ri = newRi;
-                if (cb == 1 && spanBuf[ii] == ' ') lastSpace = ri;
-            }
-            ii += cb;
-        }
-<<<<<<< HEAD
-        EMIT_RUN();
-        #undef EMIT_RUN
-=======
         spanBuf[len] = 0;
         if (len == 0) {
             // 理论上不会到达；强制推进防止死循环
@@ -642,108 +427,6 @@ static void add_span(const char* text, const char* textEnd, u32 color,
         }
         EMIT_RUN();
         #undef EMIT_RUN
-=======
-            }
-            i += cb;
-        }
-        spanBuf[len] = 0;
-        if (len == 0) {
-            // 理论上不会到达；强制推进防止死循环
-            if (p < textEnd) p++; else break;
-            continue;
-        }
-
-        // 检查是否需要换行：测量当前行已有宽度+本分块宽度
-        float existingW = 0;
-        for (int i = 0; i < line->spanCount; i++) {
-            existingW += UI_MeasureText(line->spans[i].scale, line->spans[i].text);
-        }
-        float spanW = UI_MeasureText(scale, spanBuf);
-        int availW = g_maxWidth - line->indent;
-
-        if (existingW + spanW > availW && existingW > 0) {
-            // 需要换行
-            new_line();
-            line = &g_lines[g_curLine];
-        }
-
-        // 如果单个分块还是超宽，在分块内部断行
-        spanW = UI_MeasureText(scale, spanBuf);
-        if (spanW > availW) {
-            // 逐字符断行（按完整UTF-8字符推进，绝不拆分多字节汉字）
-            char chunk[SPAN_TEXT_LEN];
-            int ci = 0;
-            int lastSpace = -1;
-            for (int i = 0; i < len; ) {
-                // 计算当前UTF-8字符占用的字节数
-                int cb = 1;
-                unsigned char c0 = (unsigned char)spanBuf[i];
-                if      ((c0 & 0xE0) == 0xC0) cb = 2;
-                else if ((c0 & 0xF0) == 0xE0) cb = 3;
-                else if ((c0 & 0xF8) == 0xF0) cb = 4;
-                if (i + cb > len) cb = len - i;
-
-                for (int b = 0; b < cb; b++) chunk[ci++] = spanBuf[i + b];
-                chunk[ci] = 0;
-                if (cb == 1 && spanBuf[i] == ' ') lastSpace = ci;
-                float cw = UI_MeasureText(scale, chunk);
-                if (cw > availW && ci > cb) {
-                    if (lastSpace > 0) {
-                        // 按空格断
-                        chunk[lastSpace - 1] = 0;
-                        if (line->spanCount < MAX_SPANS) {
-                            Span* sp = &line->spans[line->spanCount++];
-                            strncpy(sp->text, chunk, SPAN_TEXT_LEN - 1);
-                            sp->text[SPAN_TEXT_LEN-1] = 0;
-                            sp->color = color; sp->scale = scale;
-                            sp->underline = underline; sp->bold = bold;
-                        }
-                        // 剩余部分（含当前字符）移到下一行
-                        int rem = ci - lastSpace;
-                        memmove(chunk, chunk + lastSpace, rem);
-                        ci = rem;
-                        chunk[ci] = 0;
-                        lastSpace = -1;
-                    } else {
-                        // 把整个当前字符移到下一行行首，避免把多字节汉字拆坏
-                        ci -= cb;
-                        chunk[ci] = 0;
-                        if (line->spanCount < MAX_SPANS) {
-                            Span* sp = &line->spans[line->spanCount++];
-                            strncpy(sp->text, chunk, SPAN_TEXT_LEN - 1);
-                            sp->text[SPAN_TEXT_LEN-1] = 0;
-                            sp->color = color; sp->scale = scale;
-                            sp->underline = underline; sp->bold = bold;
-                        }
-                        memcpy(chunk, spanBuf + i, cb);
-                        ci = cb;
-                        chunk[ci] = 0;
-                    }
-                    new_line();
-                    line = &g_lines[g_curLine];
-                }
-                i += cb;
-            }
-            if (ci > 0 && line->spanCount < MAX_SPANS) {
-                chunk[ci] = 0;
-                Span* sp = &line->spans[line->spanCount++];
-                strncpy(sp->text, chunk, SPAN_TEXT_LEN - 1);
-                sp->text[SPAN_TEXT_LEN-1] = 0;
-                sp->color = color; sp->scale = scale;
-                sp->underline = underline; sp->bold = bold;
-            }
-        } else {
-            // 直接添加
-            if (line->spanCount < MAX_SPANS) {
-                Span* sp = &line->spans[line->spanCount++];
-                strncpy(sp->text, spanBuf, SPAN_TEXT_LEN - 1);
-                sp->text[SPAN_TEXT_LEN-1] = 0;
-                sp->color = color; sp->scale = scale;
-                sp->underline = underline; sp->bold = bold;
-            }
-        }
->>>>>>> 83d91e5ea2997eb8a09b02ef775c4d1aa70edec9
->>>>>>> 02f2e74d037b2a03dd99babd9ea59e05a5bbc2f2
     }
 }
 

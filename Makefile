@@ -33,27 +33,7 @@ APP_AUTHOR		:= Wheat
 CIA_TITLE_ID	:= 0004000003A17000
 CIA_PROC_NAME	:= MAIL3DS
 CIA_PROD_CODE	:= CTR-P-MAIL
-<<<<<<< HEAD
 CIA_VERSION		:= 1040				# 1.1.0 (主*1024 + 次*16 + 修订)
-=======
-<<<<<<< HEAD
-CIA_VERSION		:= 1040				# 1.1.0 (主*1024 + 次*16 + 修订)
-=======
-<<<<<<< HEAD
-CIA_VERSION		:= 1040				# 1.1.0 (主*1024 + 次*16 + 修订)
-=======
-<<<<<<< HEAD
-CIA_VERSION		:= 1040				# 1.1.0 (主*1024 + 次*16 + 修订)
-=======
-<<<<<<< HEAD
-CIA_VERSION		:= 1040				# 1.1.0 (主*1024 + 次*16 + 修订)
-=======
-CIA_VERSION		:= 1088				# 1.1.0 (1*1024 + 1*64 + 0)
->>>>>>> b539909e02e0db3af02993044d9b3d26125d2552
->>>>>>> cb02601b9040b431421dc9202cb8064d869f1903
->>>>>>> 0c9a3e6cf4fea35295c939f7fa5a163fcc8c4cf0
->>>>>>> 83d91e5ea2997eb8a09b02ef775c4d1aa70edec9
->>>>>>> 02f2e74d037b2a03dd99babd9ea59e05a5bbc2f2
 CIA_SHORT		:= Mail3DS
 CIA_LONG		:= 3DS 电子邮件客户端
 CIA_AUTHOR		:= Wheat
